@@ -13,11 +13,14 @@ from models.city import City
 from models.place import Place
 from models.review import Review
 from models.state import State
+import models.state
 from models.user import User
 import json
 import os
 import pep8
 import unittest
+
+import models.user
 DBStorage = db_storage.DBStorage
 classes = {"Amenity": Amenity, "City": City, "Place": Place,
            "Review": Review, "State": State, "User": User}
@@ -68,7 +71,7 @@ test_db_storage.py'])
                             "{:s} method needs a docstring".format(func[0]))
 
 
-class TestFileStorage(unittest.TestCase):
+class TestDBStorage(unittest.TestCase):
     """Test the FileStorage class"""
     @unittest.skipIf(models.storage_t != 'db', "not testing db storage")
     def test_all_returns_dict(self):
@@ -78,11 +81,53 @@ class TestFileStorage(unittest.TestCase):
     @unittest.skipIf(models.storage_t != 'db', "not testing db storage")
     def test_all_no_class(self):
         """Test that all returns all rows when no class is passed"""
+        state_data = {"name":"Ghana"}
+        new_sate = State(**state_data)
+        models.storage.new(new_sate)
+        models.storage.save()
+
+        session = models.storage.DBStorage__session
+        all_objects =session.query(State).all()
+        self.assertTrue(len(all_objects) > 0)
+
 
     @unittest.skipIf(models.storage_t != 'db', "not testing db storage")
     def test_new(self):
         """test that new adds an object to the database"""
+        state_data = {"name":"NewState"}
+        new_state = State(**state_data)
+        models.storage.new(new_state)
+        session = models.storage.DBStorage__session
+        retrieved_state = session.query(State).filter_by(id=new_state).first()
+        self.assertAlmostEqual(retrieved_state.id == new_state.id)
+        self.assertAlmostEqual(retrieved_state.name == new_state.name)
+        self.assertIsNone(retrieved_state)
+
+
 
     @unittest.skipIf(models.storage_t != 'db', "not testing db storage")
     def test_save(self):
         """Test that save properly saves objects to file.json"""
+        state_data = {"name":"NewState2"}
+        new_state = State(**state_data)
+        models.storage.new(new_state)
+        models.storage.save()
+        session = models.storage.DBStorage__session
+        retrieved_state = session.query(State).filter_by(id=new_state).first()
+        self.assertAlmostEqual(retrieved_state.id == new_state.id)
+        self.assertAlmostEqual(retrieved_state.name == new_state.name)
+        self.assertIsNone(retrieved_state)       
+
+    @unittest.skipIf(models.storage_t != 'db', "not testing db storage")
+    def test_get(self):
+        """Test get method if returns a requested object"""
+        user = User(name="User1") #create user
+        user.save() #save user
+        #check if get returns the user that was saved
+        self.assertEqual(models.storage.get("User",user.id), user)
+
+    @unittest.skipIf(models.storage_t != 'db', "not testing db storage")
+    def test_count(self):
+        """Test if couts returns a count of all objects"""
+        # Check if the number returned by the count method is equal all teh methods
+        self.assertEqual(len(models.storage.all()), models.storage.count())
